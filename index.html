@@ -9,7 +9,7 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
 .logo {font-size: 1.5rem; font-weight: bold; color: #e74c3c;}
 .user-info {display: flex; align-items: center; gap: 1rem;}
-.container {max-width: 600px; margin: 2rem auto; padding: 0 1rem;}
+.container {max-width: 650px; margin: 2rem auto; padding: 0 1rem;}
 .dashboard {display: flex; gap: 2rem; margin-bottom: 2rem;}
 .card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:120px;}
 .card h3 {color: #2c3e50; margin-bottom: 1rem; font-size: 1.1rem;}
@@ -21,6 +21,15 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
 .order-items {font-size:0.97em; color:#333; margin:0; padding:0; list-style:none;}
 .order-items li {margin-bottom:2px;}
+.state-btn {margin: 0 2px; padding: 3px 10px; font-size:0.96em; border-radius:5px; border:none; outline:none; cursor:pointer;}
+.state-preparing {background: #f39c12; color:#fff;}
+.state-ready {background: #3498db; color:#fff;}
+.state-completed {background: #2ecc71; color:#fff;}
+.state-btn.active, .state-btn:focus {box-shadow: 0 2px 8px #e74c3c44; border:2.5px solid #2222;}
+.delete-btn { background: #fff; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 6px; font-size: 0.97em; padding: 4px 12px; margin-left: 10px; cursor: pointer;}
+.delete-btn:hover {background:#ffe9e7;}
+.toggle-btn {background:#fff;color:#e74c3c;border:1.3px solid #e74c3c;padding:0.7em 1.4em;margin-right:18px;font-size:1em;cursor:pointer;border-radius:6px;}
+.toggle-btn.active {background:#e74c3c;color:#fff;}
 @media (max-width: 900px) {
     .container {padding: 6px;}
     .dashboard {flex-direction: column;}
@@ -37,6 +46,10 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
     </div>
 </div>
 <div class="container">
+    <div style="margin-bottom: 18px;">
+        <button class="toggle-btn" id="toggleBtn" onclick="toggleHistory()">歷史訂單</button>
+        <span id="orderViewTitle" style="font-weight: bold; color: #e74c3c;">目前訂單</span>
+    </div>
     <div class="dashboard">
         <div class="card">
             <h3>今日訂單</h3>
@@ -60,65 +73,79 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
     </div>
 </div>
 <script>
-// 🟢 防呆安全取得全部訂單
+// === localStorage 安全存取
 function getAllOrders() {
-    try {
-        let data = JSON.parse(localStorage.getItem('dandan_orders') || '[]');
-        if (!Array.isArray(data)) return [];
-        return data;
-    } catch (e) {
-        return [];
-    }
+    try { let d=JSON.parse(localStorage.getItem('dandan_orders')||'[]'); return Array.isArray(d)?d:[] } catch(e){ return [] }
+}
+function setAllOrders(arr){
+    localStorage.setItem('dandan_orders',JSON.stringify(arr));
+}
+function getHistoryOrders(){
+    try { let d=JSON.parse(localStorage.getItem('dandan_orders_history')||'[]'); return Array.isArray(d)?d:[] } catch(e){ return [] }
+}
+function setHistoryOrders(arr){
+    localStorage.setItem('dandan_orders_history',JSON.stringify(arr));
 }
 
-// 🟢 取得最新菜單品項，用於金額核對
-function getMenuData() {
-    try { return JSON.parse(localStorage.getItem('dandan_menu') || 'null'); } catch (e) { return null; }
+// === 狀態切換
+const STATE_MAP = {
+    'preparing': { label:'製作中', css:'state-preparing' },
+    'ready':     { label:'待取餐', css:'state-ready' },
+    'completed': { label:'完成訂單', css:'state-completed' }
+};
+let viewHistory = false;
+function toggleHistory(){
+    viewHistory = !viewHistory;
+    document.getElementById('orderViewTitle').textContent = viewHistory ? "歷史訂單" : "目前訂單";
+    document.getElementById('toggleBtn').textContent = viewHistory ? "回到目前訂單" : "歷史訂單";
+    document.getElementById('toggleBtn').className = viewHistory ? "toggle-btn active" : "toggle-btn";
+    refreshOrders();
 }
-const defaultMenuData = [
-  // 可依需要補預設品項，主要給 findMenuItem 用，或從 menu.html 複製
-];
 
-// 🟢 查找品項
-function findMenuItemByName(name) {
-    const menuData = getMenuData() || defaultMenuData;
-    for(const cat of menuData){
-        const item = (cat.items || []).find(it=>it.name===name);
-        if(item) return item;
-    }
-    return null;
+// === 統計只計算「已完成」訂單
+function isToday(dateStr){
+    if(!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();
 }
-// 🟢 計算單筆訂單金額
+function isThisMonth(dateStr){
+    if(!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+}
+function renderStats(orders) {
+    let todayCount=0, todayRevenue=0, monthCount=0;
+    orders.forEach(order=>{
+        if(order.status==='completed' && order.completed_at){
+            if(isToday(order.completed_at)) {
+                todayCount++;
+                todayRevenue += calcOrderTotal(order);
+            }
+            if(isThisMonth(order.completed_at)){
+                monthCount++;
+            }
+        }
+    });
+    document.getElementById('todayOrders').textContent = todayCount;
+    document.getElementById('totalOrders').textContent = monthCount;
+    document.getElementById('todayRevenue').textContent = "$" + todayRevenue;
+}
+
+// === 計算金額
 function calcOrderTotal(order) {
-    if(order.total) return order.total; // 若訂單有 total 欄位直接用
+    if(order.total) return order.total;
     let total = 0;
     if (order.items && Array.isArray(order.items)) {
         order.items.forEach(i=>{
             if(i.price) total += (i.price||0) * (i.quantity||1);
-            else {
-                // 若缺 price 嘗試用菜單找
-                const item = findMenuItemByName(i.name);
-                if(item) total += (item.price||0)*(i.quantity||1);
-            }
         });
     }
     return total;
 }
 
-// 🟢 今日/累積/營收 統計
-function renderStats(orders) {
-    let today = new Date();
-    let todayStr = today.toISOString().slice(0,10);
-    let todayOrders = orders.filter(o => o.created_at && o.created_at.slice(0,10) === todayStr);
-    let thisMonth = today.toISOString().slice(0,7);
-    let monthOrders = orders.filter(o => o.created_at && o.created_at.slice(0,7) === thisMonth);
-    let todayRevenue = todayOrders.reduce((sum,o)=>sum+calcOrderTotal(o),0);
-    document.getElementById('todayOrders').textContent = todayOrders.length;
-    document.getElementById('totalOrders').textContent = monthOrders.length;
-    document.getElementById('todayRevenue').textContent = "$" + todayRevenue;
-}
-
-// 🟢 訂單列表
+// === 訂單渲染
 function renderOrders(orders) {
     let html = `<table class="orders-table" style="width:100%;border-collapse:collapse;">
         <thead><tr>
@@ -129,17 +156,20 @@ function renderOrders(orders) {
             <th>時間</th>
             <th>明細</th>
             <th>金額</th>
+            <th>狀態</th>
+            <th>操作</th>
         </tr></thead>
         <tbody>
     `;
-    if(!orders.length) html += `<tr><td colspan="7" style="color:#bbb;text-align:center;padding:2em;">尚無訂單</td></tr>`;
+    if(!orders.length) html += `<tr><td colspan="9" style="color:#bbb;text-align:center;padding:2em;">尚無訂單</td></tr>`;
     orders.slice().reverse().forEach((order,idx)=>{
         html += `<tr>
             <td>${order.order_number||''}</td>
             <td>${order.customer_name||''}</td>
             <td>${order.customer_phone||''}</td>
             <td>${order.note||''}</td>
-            <td>${order.created_at ? new Date(order.created_at).toLocaleString('zh-TW') : ''}</td>
+            <td>${order.completed_at?new Date(order.completed_at).toLocaleString('zh-TW'):
+                order.created_at?new Date(order.created_at).toLocaleString('zh-TW'):""}</td>
             <td><ul class="order-items">${
                 (order.items||[]).map(i=>{
                     let detail = i.name;
@@ -148,16 +178,61 @@ function renderOrders(orders) {
                 }).join('')
             }</ul></td>
             <td style="font-weight:bold;color:#e74c3c;">$${calcOrderTotal(order)}</td>
+            <td>
+                ${renderStateBtns(order, idx, orders)}
+            </td>
+            <td>
+                <button class="delete-btn" onclick="deleteOrder(${idx})">刪除</button>
+            </td>
         </tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('ordersContainer').innerHTML = html;
 }
 
-// 🟢 刷新
-function refreshOrders() {
+// === 狀態切換按鈕
+function renderStateBtns(order, idx, ordersArr){
+    if(viewHistory) return `<span class="state-btn state-completed active">${STATE_MAP.completed.label}</span>`;
+    let now = order.status || 'preparing';
+    return Object.entries(STATE_MAP).map(([k,v])=>{
+        let cls = "state-btn "+v.css+(now===k?" active":"");
+        return `<button class="${cls}" onclick="setOrderStatus(${idx},'${k}')">${v.label}</button>`;
+    }).join('');
+}
+
+// === 狀態切換與完成自動存入歷史
+function setOrderStatus(idx, newStatus){
     let orders = getAllOrders();
-    renderStats(orders);
+    let order = orders[orders.length-1-idx];
+    if(order.status === newStatus) return;
+    order.status = newStatus;
+    if(newStatus==='completed') order.completed_at = new Date().toISOString();
+    setAllOrders(orders);
+    if(newStatus==='completed'){
+        let history = getHistoryOrders();
+        // 防重複
+        if(!history.find(o=>o.order_number===order.order_number)){
+            history.push({...order});
+            setHistoryOrders(history);
+        }
+    }
+    refreshOrders();
+}
+
+// === 刪除訂單
+function deleteOrder(idx){
+    if(!confirm("確定要刪除此訂單？")) return;
+    let orders = viewHistory ? getHistoryOrders() : getAllOrders();
+    orders.splice(orders.length-1-idx, 1);
+    if(viewHistory) setHistoryOrders(orders);
+    else setAllOrders(orders);
+    refreshOrders();
+}
+
+// === 渲染主流程
+function refreshOrders() {
+    let orders = viewHistory ? getHistoryOrders() : getAllOrders();
+    renderStats(getHistoryOrders()); // 統計只計算已完成訂單
     renderOrders(orders);
 }
 function logout() { window.location.reload(); }
