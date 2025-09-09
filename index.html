@@ -20,6 +20,9 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .orders-table {width:100%;border-collapse:collapse;overflow-x:auto;}
 .orders-table th, .orders-table td {padding: 1.1rem 1.1rem; border-bottom: 1px solid #eee; text-align: left;}
 .orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
+.orders-table td, .orders-table th {
+  white-space: nowrap;
+}
 .order-items {font-size:1em; color:#333; margin:0; padding:0; list-style:none;}
 .order-items li {margin-bottom:3px;}
 .state-btn {margin: 0 2px; padding: 3px 13px; font-size:1em; border-radius:5px; border:none; outline:none; cursor:pointer;}
@@ -31,11 +34,9 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .delete-btn:hover {background:#ffe9e7;}
 .toggle-btn {background:#fff;color:#e74c3c;border:1.5px solid #e74c3c;padding:0.95em 1.7em;margin-right:20px;font-size:1.07em;cursor:pointer;border-radius:7px;}
 .toggle-btn.active {background:#e74c3c;color:#fff;}
-/* 狀態列高亮底色 */
 .order-row-preparing {background: #fffbe7 !important;}
 .order-row-ready {background: #e8f3fd !important;}
 .order-row-completed {background: #eafaf0 !important;}
-/* RWD */
 @media (max-width: 1200px) {
     .container {max-width:98vw; padding:0 1vw;}
 }
@@ -104,8 +105,6 @@ function getHistoryOrders(){
 function setHistoryOrders(arr){
     localStorage.setItem('dandan_orders_history',JSON.stringify(arr));
 }
-
-// === 狀態切換
 const STATE_MAP = {
     'preparing': { label:'製作中', css:'state-preparing' },
     'ready':     { label:'待取餐', css:'state-ready' },
@@ -119,8 +118,6 @@ function toggleHistory(){
     document.getElementById('toggleBtn').className = viewHistory ? "toggle-btn active" : "toggle-btn";
     refreshOrders();
 }
-
-// === 統計只計算「已完成」訂單
 function isToday(dateStr){
     if(!dateStr) return false;
     const d = new Date(dateStr);
@@ -150,8 +147,6 @@ function renderStats(orders) {
     document.getElementById('totalOrders').textContent = monthCount;
     document.getElementById('todayRevenue').textContent = "$" + todayRevenue;
 }
-
-// === 計算金額
 function calcOrderTotal(order) {
     if(order.total) return order.total;
     let total = 0;
@@ -162,8 +157,6 @@ function calcOrderTotal(order) {
     }
     return total;
 }
-
-// === 訂單渲染
 function renderOrders(orders) {
     let html = `<table class="orders-table">
         <thead><tr>
@@ -211,8 +204,6 @@ function renderOrders(orders) {
     html += '</tbody></table>';
     document.getElementById('ordersContainer').innerHTML = html;
 }
-
-// === 狀態切換按鈕
 function renderStateBtns(order, idx, ordersArr){
     let now = order.status || 'preparing';
     return Object.entries(STATE_MAP).map(([k,v])=>{
@@ -220,8 +211,6 @@ function renderStateBtns(order, idx, ordersArr){
         return `<button class="${cls}" onclick="setOrderStatus(${idx},'${k}')">${v.label}</button>`;
     }).join('');
 }
-
-// === 狀態切換與完成自動存入歷史（完成後自動移出目前清單）
 function setOrderStatus(idx, newStatus){
     let orders = getAllOrders();
     let index = orders.length-1-idx;
@@ -230,7 +219,6 @@ function setOrderStatus(idx, newStatus){
     order.status = newStatus;
     if(newStatus==='completed') {
         order.completed_at = new Date().toISOString();
-        // === 移到歷史、從目前清單移除
         let history = getHistoryOrders();
         if(!history.find(o=>o.order_number===order.order_number)){
             history.push({...order});
@@ -243,8 +231,6 @@ function setOrderStatus(idx, newStatus){
     }
     refreshOrders();
 }
-
-// === 刪除訂單
 function deleteOrder(idx){
     if(!confirm("確定要刪除此訂單？")) return;
     let orders = viewHistory ? getHistoryOrders() : getAllOrders();
@@ -253,11 +239,9 @@ function deleteOrder(idx){
     else setAllOrders(orders);
     refreshOrders();
 }
-
-// === 渲染主流程
 function refreshOrders() {
     let orders = viewHistory ? getHistoryOrders() : getAllOrders();
-    renderStats(getHistoryOrders()); // 統計只計算已完成訂單
+    renderStats(getHistoryOrders());
     renderOrders(orders);
 }
 function logout() { window.location.reload(); }
