@@ -5,14 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>丹丹漢堡 - 管理後台</title>
 <style>
-/* ...原本CSS全貼，略... */
 body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff; margin:0; }
 .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
 .logo {font-size: 1.5rem; font-weight: bold; color: #e74c3c;}
 .user-info {display: flex; align-items: center; gap: 1rem;}
-.container {max-width: 1200px; margin: 2rem auto; padding: 0 1rem;}
+.container {max-width: 600px; margin: 2rem auto; padding: 0 1rem;}
 .dashboard {display: flex; gap: 2rem; margin-bottom: 2rem;}
-.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:220px;}
+.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:120px;}
 .card h3 {color: #2c3e50; margin-bottom: 1rem; font-size: 1.1rem;}
 .stat-number {font-size: 2rem; font-weight: bold; color: #e74c3c;}
 .btn {background: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 5px; cursor: pointer;}
@@ -20,22 +19,8 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .orders-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;}
 .orders-table th, .orders-table td {padding: 0.7rem; border-bottom: 1px solid #eee; text-align: left;}
 .orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
-.order-items {font-size:0.97em; color:#333;}
-.state-btn {margin: 0 2px; padding: 3px 10px; font-size:0.96em; border-radius:5px;}
-.state-preparing {background: #f39c12; color:#fff;}
-.state-ready {background: #3498db; color:#fff;}
-.state-completed {background: #2ecc71; color:#fff;}
-.active {box-shadow: 0 2px 8px #e74c3c44; border:2.5px solid #0002 !important; font-weight:bold; filter:none;}
-.status-dot {width: 22px; height: 22px; border-radius: 50%; display: inline-block; margin-right: 7px; vertical-align: middle; box-shadow:0 1px 5px #0002;}
-.status-preparing { background: #f8b51a; }
-.status-ready { background: #27aafc; }
-.status-completed { background: #38c176; }
-.order-status-label { font-weight: bold; padding:2px 9px; border-radius:10px; font-size:1em; margin-right:4px; display:inline-block;}
-.order-status-label-preparing { background:#fff3ce; color:#b45b02; border:1.5px solid #ffd580; }
-.order-status-label-ready { background:#d3efff; color:#1a5c99; border:1.5px solid #76c8f7; }
-.order-status-label-completed { background:#dcfbe6; color:#179b5d; border:1.5px solid #65e6a4;}
-.delete-btn { background: #eee; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 6px; font-size: 0.97em; padding: 4px 12px; margin-left: 10px; cursor: pointer;}
-.delete-btn:hover {background:#ffe9e7;}
+.order-items {font-size:0.97em; color:#333; margin:0; padding:0; list-style:none;}
+.order-items li {margin-bottom:2px;}
 @media (max-width: 900px) {
     .container {padding: 6px;}
     .dashboard {flex-direction: column;}
@@ -52,10 +37,6 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
     </div>
 </div>
 <div class="container">
-    <div style="margin-bottom: 18px;">
-        <button class="btn" onclick="toggleHistory()">歷史訂單</button>
-        <span id="orderViewTitle" style="font-weight: bold; color: #e74c3c;">目前訂單</span>
-    </div>
     <div class="dashboard">
         <div class="card">
             <h3>今日訂單</h3>
@@ -79,52 +60,105 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
     </div>
 </div>
 <script>
+// 🟢 防呆安全取得全部訂單
 function getAllOrders() {
-    try { return JSON.parse(localStorage.getItem('dandan_orders') || '[]'); } catch (e) { return []; }
+    try {
+        let data = JSON.parse(localStorage.getItem('dandan_orders') || '[]');
+        if (!Array.isArray(data)) return [];
+        return data;
+    } catch (e) {
+        return [];
+    }
 }
-function setAllOrders(orders) { localStorage.setItem('dandan_orders', JSON.stringify(orders)); }
-function getHistoryOrders() {
-    try { return JSON.parse(localStorage.getItem('dandan_orders_history') || '[]'); } catch (e) { return []; }
-}
-function setHistoryOrders(orders) { localStorage.setItem('dandan_orders_history', JSON.stringify(orders)); }
-// 讀最新菜單（支援 menu.html 編輯）
+
+// 🟢 取得最新菜單品項，用於金額核對
 function getMenuData() {
     try { return JSON.parse(localStorage.getItem('dandan_menu') || 'null'); } catch (e) { return null; }
 }
 const defaultMenuData = [
-    { category: "精選定食餐", items: [ /* ...你原有全部品項... */ ] },
-    // ...所有分類...
+  // 可依需要補預設品項，主要給 findMenuItem 用，或從 menu.html 複製
 ];
-function findMenuItem(itemId) {
+
+// 🟢 查找品項
+function findMenuItemByName(name) {
     const menuData = getMenuData() || defaultMenuData;
     for(const cat of menuData){
-        const item = (cat.items || []).find(it=>it.id===itemId);
+        const item = (cat.items || []).find(it=>it.name===name);
         if(item) return item;
     }
     return null;
 }
+// 🟢 計算單筆訂單金額
 function calcOrderTotal(order) {
+    if(order.total) return order.total; // 若訂單有 total 欄位直接用
     let total = 0;
     if (order.items && Array.isArray(order.items)) {
         order.items.forEach(i=>{
-            const item = findMenuItem(i.item_id);
-            if(item) total += (item.price||0) * (i.quantity||1);
+            if(i.price) total += (i.price||0) * (i.quantity||1);
+            else {
+                // 若缺 price 嘗試用菜單找
+                const item = findMenuItemByName(i.name);
+                if(item) total += (item.price||0)*(i.quantity||1);
+            }
         });
     }
     return total;
 }
-// ... 其餘訂單狀態、歷史切換、統計、渲染請直接貼用上一版即可 ...
-// --- 以下請補上你的完整訂單狀態渲染與 UI 操作程式碼（同上一版，省略以節省版面） ---
-let viewHistory = false;
-function toggleHistory(){
-    viewHistory = !viewHistory;
-    document.getElementById('orderViewTitle').textContent = viewHistory ? "歷史訂單" : "目前訂單";
-    refreshOrders();
+
+// 🟢 今日/累積/營收 統計
+function renderStats(orders) {
+    let today = new Date();
+    let todayStr = today.toISOString().slice(0,10);
+    let todayOrders = orders.filter(o => o.created_at && o.created_at.slice(0,10) === todayStr);
+    let thisMonth = today.toISOString().slice(0,7);
+    let monthOrders = orders.filter(o => o.created_at && o.created_at.slice(0,7) === thisMonth);
+    let todayRevenue = todayOrders.reduce((sum,o)=>sum+calcOrderTotal(o),0);
+    document.getElementById('todayOrders').textContent = todayOrders.length;
+    document.getElementById('totalOrders').textContent = monthOrders.length;
+    document.getElementById('todayRevenue').textContent = "$" + todayRevenue;
 }
-// ... 其餘程式同上略 ...
+
+// 🟢 訂單列表
+function renderOrders(orders) {
+    let html = `<table class="orders-table" style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+            <th>編號</th>
+            <th>姓名</th>
+            <th>電話</th>
+            <th>備註</th>
+            <th>時間</th>
+            <th>明細</th>
+            <th>金額</th>
+        </tr></thead>
+        <tbody>
+    `;
+    if(!orders.length) html += `<tr><td colspan="7" style="color:#bbb;text-align:center;padding:2em;">尚無訂單</td></tr>`;
+    orders.slice().reverse().forEach((order,idx)=>{
+        html += `<tr>
+            <td>${order.order_number||''}</td>
+            <td>${order.customer_name||''}</td>
+            <td>${order.customer_phone||''}</td>
+            <td>${order.note||''}</td>
+            <td>${order.created_at ? new Date(order.created_at).toLocaleString('zh-TW') : ''}</td>
+            <td><ul class="order-items">${
+                (order.items||[]).map(i=>{
+                    let detail = i.name;
+                    if(i.drink) detail += `（${i.drink}）`;
+                    return `<li>${detail} × ${i.quantity||1}</li>`;
+                }).join('')
+            }</ul></td>
+            <td style="font-weight:bold;color:#e74c3c;">$${calcOrderTotal(order)}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('ordersContainer').innerHTML = html;
+}
+
+// 🟢 刷新
 function refreshOrders() {
-    // ...同上...
-    // 最重要的是findMenuItem改為「從localStorage讀取菜單」
+    let orders = getAllOrders();
+    renderStats(orders);
+    renderOrders(orders);
 }
 function logout() { window.location.reload(); }
 window.onload = function() { refreshOrders(); };
