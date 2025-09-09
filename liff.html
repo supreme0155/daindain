@@ -26,6 +26,10 @@ body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
 .quantity-btn{border:none;background:#ffd700;color:#e74c3c;font-size:1.1rem;width:30px;height:32px;border-radius:7px;font-weight:bold;cursor:pointer;}
 .quantity-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .quantity{display:inline-block;min-width:1.5em;text-align:center;font-weight:bold;}
+/* Modal 樣式 */
+.modal{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:1000;}
+.modal-content{background:#fff;padding:2rem 1.7rem 1.4rem 1.7rem;border-radius:14px;max-width:390px;width:97vw;margin:10vh auto;box-shadow:0 8px 32px #0002;position:relative;}
+.close{position:absolute;top:0.7rem;right:1.1rem;font-size:1.6rem;color:#e74c3c;cursor:pointer;font-weight:bold;}
 @media(max-width:700px){.container{padding:2px;margin:0;}}
 </style>
 </head>
@@ -44,13 +48,51 @@ body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
   </div>
   <button class="checkout-btn" id="checkoutBtn" onclick="showCheckout()" disabled>前往結帳</button>
 </div>
-<!-- 結帳 modal/表單請照你原本設計，不變 -->
+
+<!-- 🟢 Modal：結帳 -->
+<div class="modal" id="checkoutModal">
+  <div class="modal-content">
+    <span class="close" onclick="closeCheckout()">&times;</span>
+    <h2 style="color:#e74c3c;margin-bottom:0.7em;">結帳資料</h2>
+    <form id="orderForm">
+      <div style="margin-bottom:0.9em;">
+        <label>姓名*<br>
+        <input type="text" id="customerName" required style="width:100%;padding:8px;border-radius:5px;"></label>
+      </div>
+      <div style="margin-bottom:0.9em;">
+        <label>電話*<br>
+        <input type="tel" id="customerPhone" required style="width:100%;padding:8px;border-radius:5px;"></label>
+      </div>
+      <div style="margin-bottom:0.8em;">
+        <label>備註<br>
+        <input type="text" id="customerNote" style="width:100%;padding:8px;border-radius:5px;"></label>
+      </div>
+      <div style="font-size:1.07em;margin-bottom:1.1em;">
+        <strong>訂單明細：</strong><br>
+        <div id="orderSummary"></div>
+        <div style="margin-top:0.7em;font-weight:bold;">總計：$<span id="orderSumTotal"></span></div>
+      </div>
+      <div id="orderError" style="color:#e74c3c;margin-bottom:0.5em;display:none;"></div>
+      <button type="submit" class="checkout-btn" style="width:100%;">送出訂單</button>
+    </form>
+  </div>
+</div>
+
+<!-- 🟢 Modal：送出完成 -->
+<div class="modal" id="orderSuccessModal">
+  <div class="modal-content" style="text-align:center;">
+    <h2 style="color:#2ecc71;">✅ 訂單已送出</h2>
+    <div style="margin:1.5em 0 1em 0;">感謝您的訂購！<br>請至櫃檯等候取餐。</div>
+    <button class="checkout-btn" style="width:70%;" onclick="closeSuccess()">確定</button>
+  </div>
+</div>
+
 <script>
-// 🟢 預設完整菜單（四大分類、品項/飲料全部填好）
+// === 🟢 預設菜單：可用 menu.html 自訂更新 ===
 const defaultMenuData = [
   {
     category: "精選定食餐 (附29元飲料)",
-    // note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
+    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
     items: [
       { name: "招牌漢堡排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
       { name: "香酥雞腿排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
@@ -68,10 +110,9 @@ const defaultMenuData = [
       { name: "香酥吉列豬排堡+杏鮑菇炸棒", price: 99, drink: "" }
     ]
   },
-  // 早餐
   {
     category: "早安特惠餐 (附29元飲料)",
-    
+    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
     items: [
       { name: "漢堡蛋+黃金薯條", price: 54, drink: "" },
       { name: "腿皮炸雞堡+薯餅", price: 54, drink: "" },
@@ -82,7 +123,6 @@ const defaultMenuData = [
       { name: "奶酪可麗餅", price: 28, drink: "" }
     ]
   },
-  // 美味丹點
   {
     category: "美味丹點",
     items: [
@@ -106,29 +146,29 @@ const defaultMenuData = [
       { name: "杏鮑菇炸棒", price: 41 }
     ]
   },
-  // 飲品
+  // 飲品（可根據你的最新價格表補齊）
   {
-  category: "飲品",
-  items: [
-    { name: "可樂(中)", price: 29 },
-    { name: "可樂(大)", price: 34 },
-    { name: "汽水(中)", price: 29 },
-    { name: "汽水(大)", price: 34 },
-    { name: "錫蘭紅茶(中)", price: 29 },
-    { name: "錫蘭紅茶(大)", price: 34 },
-    { name: "蘋果汁(中)", price: 29 },
-    { name: "蘋果汁(大)", price: 34 },
-    { name: "台灣烏龍(無糖)(中)", price: 29 },
-    { name: "台灣烏龍(無糖)(大)", price: 34 },
-    { name: "紅茶牛奶(中)", price: 29 },
-    { name: "紅茶牛奶(大)", price: 34 },
-    { name: "熱桂花烏龍", price: 29 },
-    { name: "熱美式(新品)", price: 29 }
-  ]
+    category: "飲品",
+    items: [
+      { name: "可樂(中)", price: 29 },
+      { name: "可樂(大)", price: 34 },
+      { name: "汽水(中)", price: 29 },
+      { name: "汽水(大)", price: 34 },
+      { name: "錫蘭紅茶(中)", price: 29 },
+      { name: "錫蘭紅茶(大)", price: 34 },
+      { name: "蘋果汁(中)", price: 29 },
+      { name: "蘋果汁(大)", price: 34 },
+      { name: "台灣烏龍(無糖)(中)", price: 29 },
+      { name: "台灣烏龍(無糖)(大)", price: 34 },
+      { name: "紅茶牛奶(中)", price: 29 },
+      { name: "紅茶牛奶(大)", price: 34 },
+      { name: "熱桂花烏龍", price: 29 },
+      { name: "熱美式(新品)", price: 29 }
+    ]
   }
 ];
 
-// 🟢 menuData 總是有資料（localStorage 沒有或格式錯誤會自動 fallback 預設）
+// === 🟢 菜單載入 ===
 let menuData;
 try {
     menuData = JSON.parse(localStorage.getItem('dandan_menu'));
@@ -144,7 +184,7 @@ window.addEventListener('load', () => {
   adjustContainerPadding();
 });
 window.addEventListener('resize', adjustContainerPadding);
-// 🟢 自動補底部空間
+// === 🟢 自動補底部空間 ===
 function adjustContainerPadding() {
   const cart = document.getElementById('cartSummary');
   const container = document.getElementById('menuSection');
@@ -196,8 +236,9 @@ function displayMenu() {
 }
 function renderDrinkSelect(ci,iidx,selected){
   const drinkOptions = [
-    "紅茶(冰/熱)", "奶茶(冰/熱)", "烏龍茶", "蘋果汁", "美式咖啡", "巧克力(冰/熱)",
-    "玉米濃湯", "金桔檸檬氣泡飲", "冰紅茶(大)", "冰紅茶(小)", "咖啡(熱/冰)"
+    "可樂(中)", "可樂(大)", "汽水(中)", "汽水(大)", "錫蘭紅茶(中)", "錫蘭紅茶(大)",
+    "蘋果汁(中)", "蘋果汁(大)", "台灣烏龍(無糖)(中)", "台灣烏龍(無糖)(大)",
+    "紅茶牛奶(中)", "紅茶牛奶(大)", "熱桂花烏龍", "熱美式(新品)"
   ];
   let opts = drinkOptions.map(d => `<option value="${d}"${selected===d?' selected':''}>${d}</option>`).join('');
   return `<select onchange="selectDrink('${ci}-${iidx}',this.value)">
@@ -231,7 +272,80 @@ function updateCartDisplay() {
   document.getElementById('cartTotal').textContent = totalPrice;
   document.getElementById('checkoutBtn').disabled = totalItems === 0;
 }
-// ...其餘結帳、表單、localStorage訂單儲存與原本相同...
+
+// === 🟢 結帳流程 ===
+function showCheckout() {
+    // 顯示 modal
+    document.getElementById('checkoutModal').style.display = 'block';
+    // 訂單明細
+    let summaryArr = Object.entries(cart).map(([key, qty]) => {
+        const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
+        const item = menuData[ci]?.items?.[iidx];
+        if(!item) return '';
+        let str = item.name;
+        if(typeof item.drink !== "undefined" && item.drink) str += `（${item.drink}）`;
+        return str + ` ×${qty} = $${item.price*qty}`;
+    });
+    document.getElementById('orderSummary').innerHTML = summaryArr.map(s=>`<div>${s}</div>`).join('');
+    // 總價
+    let total = Object.entries(cart).reduce((sum, [key, qty]) => {
+        const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
+        const item = menuData[ci]?.items?.[iidx];
+        return sum + (item ? item.price*qty : 0);
+    }, 0);
+    document.getElementById('orderSumTotal').textContent = total;
+    document.getElementById('orderError').style.display = "none";
+}
+function closeCheckout() {
+    document.getElementById('checkoutModal').style.display = 'none';
+}
+document.getElementById('orderForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    // 檢查
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const note = document.getElementById('customerNote').value.trim();
+    if(!name || !phone){
+        document.getElementById('orderError').textContent = "請輸入姓名和電話";
+        document.getElementById('orderError').style.display = "";
+        return;
+    }
+    // 組訂單資料
+    let orderItems = Object.entries(cart).map(([key, qty]) => {
+        const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
+        const item = menuData[ci]?.items?.[iidx];
+        if(!item) return null;
+        return {
+            name: item.name,
+            price: item.price,
+            drink: (typeof item.drink !== "undefined") ? item.drink : undefined,
+            quantity: qty
+        }
+    }).filter(Boolean);
+    let total = orderItems.reduce((sum, i) => sum + i.price*i.quantity, 0);
+    // 寫進 localStorage
+    let allOrders = [];
+    try { allOrders = JSON.parse(localStorage.getItem('dandan_orders')||'[]'); } catch(e){}
+    allOrders.push({
+        order_number: 'D' + Date.now(),
+        customer_name: name,
+        customer_phone: phone,
+        note: note,
+        items: orderItems,
+        created_at: new Date().toISOString(),
+        total
+    });
+    localStorage.setItem('dandan_orders', JSON.stringify(allOrders));
+    // 清空購物車
+    cart = {};
+    updateCartDisplay();
+    closeCheckout();
+    document.getElementById('orderSuccessModal').style.display = 'block';
+});
+function closeSuccess(){
+    document.getElementById('orderSuccessModal').style.display = 'none';
+    // 可重新整理或跳轉
+}
 </script>
 </body>
 </html>
