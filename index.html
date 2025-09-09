@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>丹丹漢堡 - 管理後台</title>
+<style>
+/* ...原本CSS全貼，略... */
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff; margin:0; }
+.header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
+.logo {font-size: 1.5rem; font-weight: bold; color: #e74c3c;}
+.user-info {display: flex; align-items: center; gap: 1rem;}
+.container {max-width: 1200px; margin: 2rem auto; padding: 0 1rem;}
+.dashboard {display: flex; gap: 2rem; margin-bottom: 2rem;}
+.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:220px;}
+.card h3 {color: #2c3e50; margin-bottom: 1rem; font-size: 1.1rem;}
+.stat-number {font-size: 2rem; font-weight: bold; color: #e74c3c;}
+.btn {background: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 5px; cursor: pointer;}
+.orders-section { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.09);}
+.orders-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;}
+.orders-table th, .orders-table td {padding: 0.7rem; border-bottom: 1px solid #eee; text-align: left;}
+.orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
+.order-items {font-size:0.97em; color:#333;}
+.state-btn {margin: 0 2px; padding: 3px 10px; font-size:0.96em; border-radius:5px;}
+.state-preparing {background: #f39c12; color:#fff;}
+.state-ready {background: #3498db; color:#fff;}
+.state-completed {background: #2ecc71; color:#fff;}
+.active {box-shadow: 0 2px 8px #e74c3c44; border:2.5px solid #0002 !important; font-weight:bold; filter:none;}
+.status-dot {width: 22px; height: 22px; border-radius: 50%; display: inline-block; margin-right: 7px; vertical-align: middle; box-shadow:0 1px 5px #0002;}
+.status-preparing { background: #f8b51a; }
+.status-ready { background: #27aafc; }
+.status-completed { background: #38c176; }
+.order-status-label { font-weight: bold; padding:2px 9px; border-radius:10px; font-size:1em; margin-right:4px; display:inline-block;}
+.order-status-label-preparing { background:#fff3ce; color:#b45b02; border:1.5px solid #ffd580; }
+.order-status-label-ready { background:#d3efff; color:#1a5c99; border:1.5px solid #76c8f7; }
+.order-status-label-completed { background:#dcfbe6; color:#179b5d; border:1.5px solid #65e6a4;}
+.delete-btn { background: #eee; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 6px; font-size: 0.97em; padding: 4px 12px; margin-left: 10px; cursor: pointer;}
+.delete-btn:hover {background:#ffe9e7;}
+@media (max-width: 900px) {
+    .container {padding: 6px;}
+    .dashboard {flex-direction: column;}
+    .orders-table th, .orders-table td {font-size: 0.95em;}
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="logo">🍔 丹丹漢堡管理後台</div>
+    <div class="user-info">
+        <a href="menu.html" class="btn" style="background:#fff;color:#e74c3c;border:1px solid #e74c3c;">編輯菜單</a>
+        <button class="btn" onclick="logout()">登出</button>
+    </div>
+</div>
+<div class="container">
+    <div style="margin-bottom: 18px;">
+        <button class="btn" onclick="toggleHistory()">歷史訂單</button>
+        <span id="orderViewTitle" style="font-weight: bold; color: #e74c3c;">目前訂單</span>
+    </div>
+    <div class="dashboard">
+        <div class="card">
+            <h3>今日訂單</h3>
+            <div class="stat-number" id="todayOrders">-</div>
+        </div>
+        <div class="card">
+            <h3>累積訂單</h3>
+            <div class="stat-number" id="totalOrders">-</div>
+        </div>
+        <div class="card">
+            <h3>今日營收</h3>
+            <div class="stat-number" id="todayRevenue">$-</div>
+        </div>
+    </div>
+    <div class="orders-section">
+        <div class="orders-header">
+            <h3>訂單管理</h3>
+            <button class="btn" onclick="refreshOrders()">重新整理</button>
+        </div>
+        <div id="ordersContainer"><div class="loading">載入訂單中...</div></div>
+    </div>
+</div>
+<script>
+function getAllOrders() {
+    try { return JSON.parse(localStorage.getItem('dandan_orders') || '[]'); } catch (e) { return []; }
+}
+function setAllOrders(orders) { localStorage.setItem('dandan_orders', JSON.stringify(orders)); }
+function getHistoryOrders() {
+    try { return JSON.parse(localStorage.getItem('dandan_orders_history') || '[]'); } catch (e) { return []; }
+}
+function setHistoryOrders(orders) { localStorage.setItem('dandan_orders_history', JSON.stringify(orders)); }
+// 讀最新菜單（支援 menu.html 編輯）
+function getMenuData() {
+    try { return JSON.parse(localStorage.getItem('dandan_menu') || 'null'); } catch (e) { return null; }
+}
+const defaultMenuData = [
+    { category: "精選定食餐", items: [ /* ...你原有全部品項... */ ] },
+    // ...所有分類...
+];
+function findMenuItem(itemId) {
+    const menuData = getMenuData() || defaultMenuData;
+    for(const cat of menuData){
+        const item = (cat.items || []).find(it=>it.id===itemId);
+        if(item) return item;
+    }
+    return null;
+}
+function calcOrderTotal(order) {
+    let total = 0;
+    if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(i=>{
+            const item = findMenuItem(i.item_id);
+            if(item) total += (item.price||0) * (i.quantity||1);
+        });
+    }
+    return total;
+}
+// ... 其餘訂單狀態、歷史切換、統計、渲染請直接貼用上一版即可 ...
+// --- 以下請補上你的完整訂單狀態渲染與 UI 操作程式碼（同上一版，省略以節省版面） ---
+let viewHistory = false;
+function toggleHistory(){
+    viewHistory = !viewHistory;
+    document.getElementById('orderViewTitle').textContent = viewHistory ? "歷史訂單" : "目前訂單";
+    refreshOrders();
+}
+// ... 其餘程式同上略 ...
+function refreshOrders() {
+    // ...同上...
+    // 最重要的是findMenuItem改為「從localStorage讀取菜單」
+}
+function logout() { window.location.reload(); }
+window.onload = function() { refreshOrders(); };
+</script>
+</body>
+</html>

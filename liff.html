@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>丹丹漢堡 - 線上點餐</title>
+<meta name="color-scheme" content="light dark">
+<style>
+body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
+.header{background:#e74c3c;color:#fff;text-align:center;padding:1.3rem 0 0.8rem;}
+.header h1{margin:0 0 4px 0;font-size:2rem;font-weight:bold;}
+.header p{margin:0;font-size:1rem;}
+.container{max-width:860px;margin:20px auto 0 auto;padding:12px;background:#fff;border-radius:18px;box-shadow:0 4px 16px #e74c3c19;}
+.cart-summary{position:fixed;bottom:0;left:0;right:0;background:#fffbe7;border-top:2px solid #ffd580;display:flex;align-items:center;justify-content:space-between;padding:14px 6vw;box-shadow:0 -3px 18px #e67e2280;z-index:99;font-size:1.12rem;}
+.cat-note{background:#fff4c2;border-radius:8px;color:#b45b02;font-size:1em;padding:8px 10px 7px 14px;margin:8px 0 10px 0;}
+.category{margin-bottom:20px;border-radius:14px;background:#f9f9f9;box-shadow:0 2px 7px #0001;overflow:hidden;}
+.category-header{background:#e74c3c;color:#fff;font-size:1.13rem;padding:1rem 1.2rem;font-weight:bold;cursor:pointer;}
+.category-header.collapsed{border-radius:14px;}
+.category-items{padding:0.4rem 0.9rem 0.7rem 1.2rem;}
+.menu-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0 9px 0;border-bottom:1px solid #eee;}
+.menu-item:last-child{border-bottom:none;}
+.item-info{font-size:1.08rem;font-weight:500;}
+.item-controls{display:flex;align-items:center;gap:12px;}
+.item-price{font-size:1.1rem;color:#e74c3c;font-weight:bold;}
+.quantity-control{display:flex;align-items:center;gap:0.3rem;background:#eee;border-radius:7px;padding:2px 7px;}
+.quantity-btn{border:none;background:#ffd700;color:#e74c3c;font-size:1.1rem;width:30px;height:32px;border-radius:7px;font-weight:bold;cursor:pointer;}
+.quantity-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.quantity{display:inline-block;min-width:1.5em;text-align:center;font-weight:bold;}
+@media(max-width:700px){.container{padding:2px;margin:0;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🍔 丹丹漢堡</h1>
+  <p>線上點餐系統</p>
+</div>
+<div class="container" id="menuSection">
+  <div id="menuContainer"><div class="loading">載入菜單中...</div></div>
+</div>
+<div class="cart-summary" id="cartSummary">
+  <div class="cart-info">
+    <div class="cart-count">已選 <span id="cartCount">0</span> 項</div>
+    <div class="cart-total">總計 $<span id="cartTotal">0</span></div>
+  </div>
+  <button class="checkout-btn" id="checkoutBtn" onclick="showCheckout()" disabled>前往結帳</button>
+</div>
+<!-- 結帳 modal/表單請照你原本設計，不變 -->
+<script>
+// 🟢 預設完整菜單（四大分類、品項/飲料全部填好）
+const defaultMenuData = [
+  {
+    category: "精選定食餐 (附29元飲料)",
+    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
+    items: [
+      { name: "招牌漢堡排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
+      { name: "香酥雞腿排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
+      { name: "漢堡排豬肉堡+腿皮炸雞+腿皮飯", price: 97, drink: "" },
+      { name: "招牌雞塊+腿皮炸雞+腿皮飯", price: 104, drink: "" },
+      { name: "鮮嫩雞腿堡+玉米濃湯", price: 99, drink: "" },
+      { name: "鮮嫩雞米花+腿皮飯", price: 97, drink: "" },
+      { name: "迷迭香雞+腿皮炸雞", price: 107, drink: "" },
+      { name: "招牌漢堡排+腿皮飯+玉米濃湯", price: 114, drink: "" },
+      { name: "香酥雞腿排+腿皮飯+玉米濃湯", price: 114, drink: "" },
+      { name: "漢堡排豬肉堡+腿皮飯+玉米濃湯", price: 108, drink: "" },
+      { name: "鮮嫩雞腿堡+腿皮飯+玉米濃湯", price: 107, drink: "" },
+      { name: "五穀雞肉粥+金色薯條餐", price: 94, drink: "" },
+      { name: "赤肉羹麵線+雞可樂餅", price: 82, drink: "" },
+      { name: "香酥吉列豬排堡+杏鮑菇炸棒", price: 99, drink: "" }
+    ]
+  },
+  {
+    category: "早安特惠餐 (附29元飲料)",
+    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
+    items: [
+      { name: "漢堡蛋+黃金薯條", price: 54, drink: "" },
+      { name: "腿皮炸雞堡+薯餅", price: 54, drink: "" },
+      { name: "鮮嫩雞米花+腿皮飯", price: 50, drink: "" },
+      { name: "招牌雞塊+腿皮飯", price: 50, drink: "" },
+      { name: "五穀雞肉粥", price: 43, drink: "" },
+      { name: "雞蛋吐司+黃金雞米花", price: 43, drink: "" },
+      { name: "奶酪可麗餅", price: 28, drink: "" }
+    ]
+  },
+  {
+    category: "美味丹點",
+    items: [
+      { name: "排骨酥肉燥麵", price: 68 },
+      { name: "赤肉羹麵線煲", price: 45 },
+      { name: "香菇雞腿飯", price: 68 },
+      { name: "雞蛋飯", price: 41 },
+      { name: "玉米濃湯", price: 27 },
+      { name: "無骨雞塊(9入)", price: 78 },
+      { name: "黃金雞米花", price: 47 },
+      { name: "腿皮炸雞", price: 47 },
+      { name: "豬肉可樂餅", price: 41 },
+      { name: "雞可樂餅", price: 41 },
+      { name: "雞米花", price: 37 },
+      { name: "鮮嫩雞腿堡", price: 66 },
+      { name: "香酥吉列豬排堡", price: 66 },
+      { name: "雞蛋吐司", price: 37 },
+      { name: "黃金薯條", price: 41 },
+      { name: "紅藜波浪薯", price: 36 },
+      { name: "薯餅", price: 23 },
+      { name: "杏鮑菇炸棒", price: 41 }
+    ]
+  },
+  {
+    category: "飲品",
+    items: [
+      { name: "咖啡(熱/冰)", price: 31 },
+      { name: "奶茶(熱/冰)", price: 31 },
+      { name: "綠茶/烏龍茶/蘋果汁", price: 31 },
+      { name: "金桔檸檬氣泡飲", price: 39 },
+      { name: "美式咖啡", price: 31 },
+      { name: "冰紅茶(大)", price: 36 },
+      { name: "冰紅茶(小)", price: 26 },
+      { name: "巧克力(熱/冰)", price: 31 },
+      { name: "玉米濃湯", price: 27 }
+    ]
+  }
+];
+
+// 🟢 menuData 總是有資料（localStorage 沒有或格式錯誤會自動 fallback 預設）
+let menuData;
+try {
+    menuData = JSON.parse(localStorage.getItem('dandan_menu'));
+    if(!menuData || !Array.isArray(menuData) || !menuData[0]?.category) throw "no menu";
+} catch(e) {
+    menuData = defaultMenuData;
+}
+let cart = {};
+let collapsedCat = {};
+window.addEventListener('load', () => {
+  displayMenu();
+  updateCartDisplay();
+  adjustContainerPadding();
+});
+window.addEventListener('resize', adjustContainerPadding);
+// 🟢 自動補底部空間
+function adjustContainerPadding() {
+  const cart = document.getElementById('cartSummary');
+  const container = document.getElementById('menuSection');
+  if(cart && container) {
+    cart.style.visibility = "hidden"; cart.style.display = "block";
+    setTimeout(function() {
+      const h = cart.offsetHeight || 90;
+      container.style.paddingBottom = (h + 20) + "px";
+      cart.style.visibility = ""; cart.style.display = "";
+    }, 40);
+  }
+}
+function displayMenu() {
+  const container = document.getElementById('menuContainer');
+  if (!menuData.length) {
+    container.innerHTML = '<div class="error">暫無菜單資料</div>';
+    return;
+  }
+  let html = menuData.map((category, ci) => {
+    const items = (category.items || []);
+    const colKey = category.category;
+    const collapsed = collapsedCat[colKey] === true;
+    return `
+      <div class="category">
+        <div class="category-header${collapsed ? ' collapsed' : ''}" onclick="toggleCat('${colKey}')">
+          ${category.category} <span style="font-size:0.98em;float:right;">${collapsed ? '＋' : '－'}</span>
+        </div>
+        ${category.note ? `<div class="cat-note">${category.note}</div>` : ''}
+        <div class="category-items" style="display:${collapsed ? 'none' : 'block'};">
+          ${items.map((item, iidx) => `
+            <div class="menu-item">
+              <div class="item-info">${item.name}</div>
+              <div class="item-controls">
+                <div class="item-price">$${item.price}</div>
+                ${(typeof item.drink !== "undefined") ? renderDrinkSelect(ci,iidx,item.drink) : ""}
+                <div class="quantity-control">
+                  <button class="quantity-btn" onclick="updateQuantity('${ci}-${iidx}', -1)" ${!cart[ci+'-'+iidx] ? 'disabled' : ''}>-</button>
+                  <span class="quantity">${cart[ci+'-'+iidx] || 0}</span>
+                  <button class="quantity-btn" onclick="updateQuantity('${ci}-${iidx}', 1)">+</button>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+  container.innerHTML = html;
+}
+function renderDrinkSelect(ci,iidx,selected){
+  const drinkOptions = [
+    "紅茶(冰/熱)", "奶茶(冰/熱)", "烏龍茶", "蘋果汁", "美式咖啡", "巧克力(冰/熱)",
+    "玉米濃湯", "金桔檸檬氣泡飲", "冰紅茶(大)", "冰紅茶(小)", "咖啡(熱/冰)"
+  ];
+  let opts = drinkOptions.map(d => `<option value="${d}"${selected===d?' selected':''}>${d}</option>`).join('');
+  return `<select onchange="selectDrink('${ci}-${iidx}',this.value)">
+    <option value="">--飲料--</option>${opts}
+  </select>`;
+}
+function selectDrink(key, val){
+  const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
+  menuData[ci].items[iidx].drink = val;
+}
+function toggleCat(key) {
+  collapsedCat[key] = !collapsedCat[key];
+  displayMenu();
+}
+function updateQuantity(key, change) {
+  if (!cart[key]) cart[key] = 0;
+  cart[key] += change;
+  if (cart[key] <= 0) delete cart[key];
+  updateCartDisplay();
+  displayMenu();
+}
+function updateCartDisplay() {
+  let totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+  let totalPrice = 0;
+  Object.entries(cart).forEach(([key, qty]) => {
+    const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
+    const item = menuData[ci]?.items?.[iidx];
+    if(item) totalPrice += (item.price || 0) * qty;
+  });
+  document.getElementById('cartCount').textContent = totalItems;
+  document.getElementById('cartTotal').textContent = totalPrice;
+  document.getElementById('checkoutBtn').disabled = totalItems === 0;
+}
+// ...其餘結帳、表單、localStorage訂單儲存與原本相同...
+</script>
+</body>
+</html>
