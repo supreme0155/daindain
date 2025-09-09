@@ -112,100 +112,24 @@ body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
 </div>
 
 <script>
-// === 🟢 預設菜單：可用 menu.html 自訂更新 ===
-const defaultMenuData = [
-  {
-    category: "精選定食餐 (附29元飲料)",
-    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
-    items: [
-      { name: "招牌漢堡排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
-      { name: "香酥雞腿排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
-      { name: "漢堡排豬肉堡+腿皮炸雞+腿皮飯", price: 97, drink: "" },
-      { name: "招牌雞塊+腿皮炸雞+腿皮飯", price: 104, drink: "" },
-      { name: "鮮嫩雞腿堡+玉米濃湯", price: 99, drink: "" },
-      { name: "鮮嫩雞米花+腿皮飯", price: 97, drink: "" },
-      { name: "迷迭香雞+腿皮炸雞", price: 107, drink: "" },
-      { name: "招牌漢堡排+腿皮飯+玉米濃湯", price: 114, drink: "" },
-      { name: "香酥雞腿排+腿皮飯+玉米濃湯", price: 114, drink: "" },
-      { name: "漢堡排豬肉堡+腿皮飯+玉米濃湯", price: 108, drink: "" },
-      { name: "鮮嫩雞腿堡+腿皮飯+玉米濃湯", price: 107, drink: "" },
-      { name: "五穀雞肉粥+金色薯條餐", price: 94, drink: "" },
-      { name: "赤肉羹麵線+雞可樂餅", price: 82, drink: "" },
-      { name: "香酥吉列豬排堡+杏鮑菇炸棒", price: 99, drink: "" }
-    ]
-  },
-  {
-    category: "早安特惠餐 (附29元飲料)",
-    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
-    items: [
-      { name: "漢堡蛋+黃金薯條", price: 54, drink: "" },
-      { name: "腿皮炸雞堡+薯餅", price: 54, drink: "" },
-      { name: "鮮嫩雞米花+腿皮飯", price: 50, drink: "" },
-      { name: "招牌雞塊+腿皮飯", price: 50, drink: "" },
-      { name: "五穀雞肉粥", price: 43, drink: "" },
-      { name: "雞蛋吐司+黃金雞米花", price: 43, drink: "" },
-      { name: "奶酪可麗餅", price: 28, drink: "" }
-    ]
-  },
-  {
-    category: "美味丹點",
-    items: [
-      { name: "排骨酥肉燥麵", price: 68 },
-      { name: "赤肉羹麵線煲", price: 45 },
-      { name: "香菇雞腿飯", price: 68 },
-      { name: "雞蛋飯", price: 41 },
-      { name: "玉米濃湯", price: 27 },
-      { name: "無骨雞塊(9入)", price: 78 },
-      { name: "黃金雞米花", price: 47 },
-      { name: "腿皮炸雞", price: 47 },
-      { name: "豬肉可樂餅", price: 41 },
-      { name: "雞可樂餅", price: 41 },
-      { name: "雞米花", price: 37 },
-      { name: "鮮嫩雞腿堡", price: 66 },
-      { name: "香酥吉列豬排堡", price: 66 },
-      { name: "雞蛋吐司", price: 37 },
-      { name: "黃金薯條", price: 41 },
-      { name: "紅藜波浪薯", price: 36 },
-      { name: "薯餅", price: 23 },
-      { name: "杏鮑菇炸棒", price: 41 }
-    ]
-  },
-  {
-    category: "飲品",
-    items: [
-      { name: "可樂(中)", price: 29 },
-      { name: "可樂(大)", price: 34 },
-      { name: "汽水(中)", price: 29 },
-      { name: "汽水(大)", price: 34 },
-      { name: "錫蘭紅茶(中)", price: 29 },
-      { name: "錫蘭紅茶(大)", price: 34 },
-      { name: "蘋果汁(中)", price: 29 },
-      { name: "蘋果汁(大)", price: 34 },
-      { name: "台灣烏龍(無糖)(中)", price: 29 },
-      { name: "台灣烏龍(無糖)(大)", price: 34 },
-      { name: "紅茶牛奶(中)", price: 29 },
-      { name: "紅茶牛奶(大)", price: 34 },
-      { name: "熱桂花烏龍", price: 29 },
-      { name: "熱美式(新品)", price: 29 }
-    ]
-  }
-];
-
-let menuData;
+// === 強制只連接 menu.html 編輯的菜單 ===
+let menuData = [];
 try {
-    menuData = JSON.parse(localStorage.getItem('dandan_menu'));
-    if(!menuData || !Array.isArray(menuData) || !menuData[0]?.category) throw "no menu";
+  menuData = JSON.parse(localStorage.getItem('dandan_menu')) || [];
+  if(!menuData || !Array.isArray(menuData) || !menuData[0]?.category) throw "no menu";
 } catch(e) {
-    menuData = defaultMenuData;
+  menuData = [];
 }
 let cart = {};
 let collapsedCat = {};
+
 window.addEventListener('load', () => {
   displayMenu();
   updateCartDisplay();
   adjustContainerPadding();
 });
 window.addEventListener('resize', adjustContainerPadding);
+
 function adjustContainerPadding() {
   const cart = document.getElementById('cartSummary');
   const container = document.getElementById('menuSection');
@@ -221,7 +145,7 @@ function adjustContainerPadding() {
 function displayMenu() {
   const container = document.getElementById('menuContainer');
   if (!menuData.length) {
-    container.innerHTML = '<div class="error">暫無菜單資料</div>';
+    container.innerHTML = '<div class="error" style="padding:2em;text-align:center;color:#e74c3c;font-size:1.25em;">暫無菜單資料<br>請管理員至 menu.html 建立菜單</div>';
     return;
   }
   let html = menuData.map((category, ci) => {
@@ -256,11 +180,8 @@ function displayMenu() {
   container.innerHTML = html;
 }
 function renderDrinkSelect(ci,iidx,selected){
-  const drinkOptions = [
-    "可樂(中)", "可樂(大)", "汽水(中)", "汽水(大)", "錫蘭紅茶(中)", "錫蘭紅茶(大)",
-    "蘋果汁(中)", "蘋果汁(大)", "台灣烏龍(無糖)(中)", "台灣烏龍(無糖)(大)",
-    "紅茶牛奶(中)", "紅茶牛奶(大)", "熱桂花烏龍", "熱美式(新品)"
-  ];
+  // 飲料選單固定用 menu.html 寫入的飲品，不再自帶選單
+  const drinkOptions = (menuData.find(cat=>cat.category.includes("飲品"))?.items || []).map(d=>d.name);
   let opts = drinkOptions.map(d => `<option value="${d}"${selected===d?' selected':''}>${d}</option>`).join('');
   return `<select onchange="selectDrink('${ci}-${iidx}',this.value)">
     <option value="">--飲料--</option>${opts}
@@ -293,7 +214,6 @@ function updateCartDisplay() {
   document.getElementById('cartTotal').textContent = totalPrice;
   document.getElementById('checkoutBtn').disabled = totalItems === 0;
 }
-
 // === 🟢 結帳流程 ===
 function showCheckout() {
     document.getElementById('checkoutModal').style.display = 'block';
