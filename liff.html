@@ -50,7 +50,7 @@ body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
 const defaultMenuData = [
   {
     category: "精選定食餐 (附29元飲料)",
-    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
+    // note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
     items: [
       { name: "招牌漢堡排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
       { name: "香酥雞腿排+腿皮炸雞+腿皮飯", price: 104, drink: "" },
@@ -68,9 +68,10 @@ const defaultMenuData = [
       { name: "香酥吉列豬排堡+杏鮑菇炸棒", price: 99, drink: "" }
     ]
   },
+  // 早餐
   {
     category: "早安特惠餐 (附29元飲料)",
-    note: "一份套餐限加購$26地瓜薯條 或 $39義式紅醬波浪薯；漢堡可+$10加吉司 (起司)；早上10點前可加蛋",
+    
     items: [
       { name: "漢堡蛋+黃金薯條", price: 54, drink: "" },
       { name: "腿皮炸雞堡+薯餅", price: 54, drink: "" },
@@ -81,6 +82,7 @@ const defaultMenuData = [
       { name: "奶酪可麗餅", price: 28, drink: "" }
     ]
   },
+  // 美味丹點
   {
     category: "美味丹點",
     items: [
@@ -104,19 +106,25 @@ const defaultMenuData = [
       { name: "杏鮑菇炸棒", price: 41 }
     ]
   },
+  // 飲品
   {
-    category: "飲品",
-    items: [
-      { name: "咖啡(熱/冰)", price: 31 },
-      { name: "奶茶(熱/冰)", price: 31 },
-      { name: "綠茶/烏龍茶/蘋果汁", price: 31 },
-      { name: "金桔檸檬氣泡飲", price: 39 },
-      { name: "美式咖啡", price: 31 },
-      { name: "冰紅茶(大)", price: 36 },
-      { name: "冰紅茶(小)", price: 26 },
-      { name: "巧克力(熱/冰)", price: 31 },
-      { name: "玉米濃湯", price: 27 }
-    ]
+  category: "飲品",
+  items: [
+    { name: "可樂(中)", price: 29 },
+    { name: "可樂(大)", price: 34 },
+    { name: "汽水(中)", price: 29 },
+    { name: "汽水(大)", price: 34 },
+    { name: "錫蘭紅茶(中)", price: 29 },
+    { name: "錫蘭紅茶(大)", price: 34 },
+    { name: "蘋果汁(中)", price: 29 },
+    { name: "蘋果汁(大)", price: 34 },
+    { name: "台灣烏龍(無糖)(中)", price: 29 },
+    { name: "台灣烏龍(無糖)(大)", price: 34 },
+    { name: "紅茶牛奶(中)", price: 29 },
+    { name: "紅茶牛奶(大)", price: 34 },
+    { name: "熱桂花烏龍", price: 29 },
+    { name: "熱美式(新品)", price: 29 }
+  ]
   }
 ];
 
