@@ -6,41 +6,44 @@
 <title>丹丹漢堡 - 管理後台</title>
 <style>
 body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff; margin:0; }
-.header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
-.logo {font-size: 1.5rem; font-weight: bold; color: #e74c3c;}
-.user-info {display: flex; align-items: center; gap: 1rem;}
-.container {max-width: 800px; margin: 2rem auto; padding: 0 1rem;}
-.dashboard {display: flex; gap: 2rem; margin-bottom: 2rem;}
-.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:120px;flex:1;}
-.card h3 {color: #2c3e50; margin-bottom: 1rem; font-size: 1.1rem;}
-.stat-number {font-size: 2rem; font-weight: bold; color: #e74c3c;}
-.btn {background: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 5px; cursor: pointer;}
-.orders-section { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.09);}
-.orders-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;}
+.header { background: #fff; padding: 1rem 2.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
+.logo {font-size: 1.6rem; font-weight: bold; color: #e74c3c;}
+.user-info {display: flex; align-items: center; gap: 1.3rem;}
+.container {max-width: 1200px; margin: 2.5rem auto; padding: 0 2.5rem;}
+.dashboard {display: flex; gap: 2.5rem; margin-bottom: 2.5rem;}
+.card { background: white; border-radius: 14px; padding: 2.2rem; box-shadow: 0 4px 18px rgba(0,0,0,0.11); min-width:150px;flex:1;}
+.card h3 {color: #2c3e50; margin-bottom: 1.1rem; font-size: 1.22rem;}
+.stat-number {font-size: 2.1rem; font-weight: bold; color: #e74c3c;}
+.btn {background: #e74c3c; color: white; border: none; padding: 0.85rem 1.6rem; border-radius: 6px; cursor: pointer;}
+.orders-section { background: white; border-radius: 14px; padding: 2.1rem; box-shadow: 0 4px 18px rgba(0,0,0,0.10);}
+.orders-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.3rem;}
 .orders-table {width:100%;border-collapse:collapse;overflow-x:auto;}
-.orders-table th, .orders-table td {padding: 0.7rem; border-bottom: 1px solid #eee; text-align: left;}
+.orders-table th, .orders-table td {padding: 1.1rem 1.1rem; border-bottom: 1px solid #eee; text-align: left;}
 .orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
-.order-items {font-size:0.97em; color:#333; margin:0; padding:0; list-style:none;}
-.order-items li {margin-bottom:2px;}
-.state-btn {margin: 0 2px; padding: 3px 10px; font-size:0.96em; border-radius:5px; border:none; outline:none; cursor:pointer;}
+.order-items {font-size:1em; color:#333; margin:0; padding:0; list-style:none;}
+.order-items li {margin-bottom:3px;}
+.state-btn {margin: 0 2px; padding: 3px 13px; font-size:1em; border-radius:5px; border:none; outline:none; cursor:pointer;}
 .state-preparing {background: #f39c12; color:#fff;}
 .state-ready {background: #3498db; color:#fff;}
 .state-completed {background: #2ecc71; color:#fff;}
 .state-btn.active, .state-btn:focus {box-shadow: 0 2px 8px #e74c3c44; border:2.5px solid #2222;}
-.delete-btn { background: #fff; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 6px; font-size: 0.97em; padding: 4px 12px; margin-left: 10px; cursor: pointer;}
+.delete-btn { background: #fff; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 7px; font-size: 1em; padding: 5px 15px; margin-left: 10px; cursor: pointer;}
 .delete-btn:hover {background:#ffe9e7;}
-.toggle-btn {background:#fff;color:#e74c3c;border:1.3px solid #e74c3c;padding:0.7em 1.4em;margin-right:18px;font-size:1em;cursor:pointer;border-radius:6px;}
+.toggle-btn {background:#fff;color:#e74c3c;border:1.5px solid #e74c3c;padding:0.95em 1.7em;margin-right:20px;font-size:1.07em;cursor:pointer;border-radius:7px;}
 .toggle-btn.active {background:#e74c3c;color:#fff;}
-/* 🟢 狀態列高亮底色 */
+/* 狀態列高亮底色 */
 .order-row-preparing {background: #fffbe7 !important;}
 .order-row-ready {background: #e8f3fd !important;}
 .order-row-completed {background: #eafaf0 !important;}
-/* 🟢 RWD 表格橫滑、斷行 */
+/* RWD */
+@media (max-width: 1200px) {
+    .container {max-width:98vw; padding:0 1vw;}
+}
 @media (max-width: 900px) {
-    .container {padding: 6px;}
+    .container {padding: 8px;}
     .dashboard {flex-direction: column;}
-    .orders-section{padding:0.4em;}
-    .orders-table th, .orders-table td {font-size: 0.97em;padding:0.4em;}
+    .orders-section{padding:0.6em;}
+    .orders-table th, .orders-table td {font-size: 0.97em;padding:0.6em;}
     .orders-table{font-size:0.97em;}
     .orders-table th, .orders-table td {white-space:pre-line;word-break:break-all;}
 }
