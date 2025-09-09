@@ -9,14 +9,15 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
 .logo {font-size: 1.5rem; font-weight: bold; color: #e74c3c;}
 .user-info {display: flex; align-items: center; gap: 1rem;}
-.container {max-width: 650px; margin: 2rem auto; padding: 0 1rem;}
+.container {max-width: 800px; margin: 2rem auto; padding: 0 1rem;}
 .dashboard {display: flex; gap: 2rem; margin-bottom: 2rem;}
-.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:120px;}
+.card { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-width:120px;flex:1;}
 .card h3 {color: #2c3e50; margin-bottom: 1rem; font-size: 1.1rem;}
 .stat-number {font-size: 2rem; font-weight: bold; color: #e74c3c;}
 .btn {background: #e74c3c; color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 5px; cursor: pointer;}
 .orders-section { background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.09);}
 .orders-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;}
+.orders-table {width:100%;border-collapse:collapse;overflow-x:auto;}
 .orders-table th, .orders-table td {padding: 0.7rem; border-bottom: 1px solid #eee; text-align: left;}
 .orders-table th {background: #fafafa; font-weight: bold; color: #2c3e50;}
 .order-items {font-size:0.97em; color:#333; margin:0; padding:0; list-style:none;}
@@ -30,10 +31,24 @@ body { font-family: 'Microsoft JhengHei', Arial, sans-serif; background: #f8f8ff
 .delete-btn:hover {background:#ffe9e7;}
 .toggle-btn {background:#fff;color:#e74c3c;border:1.3px solid #e74c3c;padding:0.7em 1.4em;margin-right:18px;font-size:1em;cursor:pointer;border-radius:6px;}
 .toggle-btn.active {background:#e74c3c;color:#fff;}
+/* 🟢 狀態列高亮底色 */
+.order-row-preparing {background: #fffbe7 !important;}
+.order-row-ready {background: #e8f3fd !important;}
+.order-row-completed {background: #eafaf0 !important;}
+/* 🟢 RWD 表格橫滑、斷行 */
 @media (max-width: 900px) {
     .container {padding: 6px;}
     .dashboard {flex-direction: column;}
-    .orders-table th, .orders-table td {font-size: 0.95em;}
+    .orders-section{padding:0.4em;}
+    .orders-table th, .orders-table td {font-size: 0.97em;padding:0.4em;}
+    .orders-table{font-size:0.97em;}
+    .orders-table th, .orders-table td {white-space:pre-line;word-break:break-all;}
+}
+@media (max-width: 650px) {
+    .container {padding:2px;}
+    .orders-section{padding:0;}
+    .orders-table th, .orders-table td {font-size:0.96em;}
+    .orders-table{display:block;overflow-x:auto;}
 }
 </style>
 </head>
@@ -147,7 +162,7 @@ function calcOrderTotal(order) {
 
 // === 訂單渲染
 function renderOrders(orders) {
-    let html = `<table class="orders-table" style="width:100%;border-collapse:collapse;">
+    let html = `<table class="orders-table">
         <thead><tr>
             <th>編號</th>
             <th>姓名</th>
@@ -163,7 +178,9 @@ function renderOrders(orders) {
     `;
     if(!orders.length) html += `<tr><td colspan="9" style="color:#bbb;text-align:center;padding:2em;">尚無訂單</td></tr>`;
     orders.slice().reverse().forEach((order,idx)=>{
-        html += `<tr>
+        let state = order.status || 'preparing';
+        let rowClass = viewHistory ? '' : 'order-row-' + state;
+        html += `<tr class="${rowClass}">
             <td>${order.order_number||''}</td>
             <td>${order.customer_name||''}</td>
             <td>${order.customer_phone||''}</td>
@@ -179,7 +196,9 @@ function renderOrders(orders) {
             }</ul></td>
             <td style="font-weight:bold;color:#e74c3c;">$${calcOrderTotal(order)}</td>
             <td>
-                ${renderStateBtns(order, idx, orders)}
+                ${viewHistory 
+                    ? `<span class="state-btn state-completed active">${STATE_MAP.completed.label}</span>`
+                    : renderStateBtns(order, idx, orders)}
             </td>
             <td>
                 <button class="delete-btn" onclick="deleteOrder(${idx})">刪除</button>
@@ -192,7 +211,6 @@ function renderOrders(orders) {
 
 // === 狀態切換按鈕
 function renderStateBtns(order, idx, ordersArr){
-    if(viewHistory) return `<span class="state-btn state-completed active">${STATE_MAP.completed.label}</span>`;
     let now = order.status || 'preparing';
     return Object.entries(STATE_MAP).map(([k,v])=>{
         let cls = "state-btn "+v.css+(now===k?" active":"");
@@ -200,21 +218,25 @@ function renderStateBtns(order, idx, ordersArr){
     }).join('');
 }
 
-// === 狀態切換與完成自動存入歷史
+// === 狀態切換與完成自動存入歷史（完成後自動移出目前清單）
 function setOrderStatus(idx, newStatus){
     let orders = getAllOrders();
-    let order = orders[orders.length-1-idx];
+    let index = orders.length-1-idx;
+    let order = orders[index];
     if(order.status === newStatus) return;
     order.status = newStatus;
-    if(newStatus==='completed') order.completed_at = new Date().toISOString();
-    setAllOrders(orders);
-    if(newStatus==='completed'){
+    if(newStatus==='completed') {
+        order.completed_at = new Date().toISOString();
+        // === 移到歷史、從目前清單移除
         let history = getHistoryOrders();
-        // 防重複
         if(!history.find(o=>o.order_number===order.order_number)){
             history.push({...order});
             setHistoryOrders(history);
         }
+        orders.splice(index,1);
+        setAllOrders(orders);
+    } else {
+        setAllOrders(orders);
     }
     refreshOrders();
 }
