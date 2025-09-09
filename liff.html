@@ -28,7 +28,31 @@ body{font-family:'Microsoft JhengHei',Arial,sans-serif;background:#fff8f4;}
 .quantity{display:inline-block;min-width:1.5em;text-align:center;font-weight:bold;}
 /* Modal 樣式 */
 .modal{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:1000;}
-.modal-content{background:#fff;padding:2rem 1.7rem 1.4rem 1.7rem;border-radius:14px;max-width:390px;width:97vw;margin:10vh auto;box-shadow:0 8px 32px #0002;position:relative;}
+.modal-content {
+  background:#fff;
+  padding:2rem 1.7rem 1.4rem 1.7rem;
+  border-radius:14px;
+  max-width:390px;
+  width:97vw;
+  margin:10vh auto;
+  box-shadow:0 8px 32px #0002;
+  position:relative;
+}
+@media (max-width: 540px) {
+  .modal-content {
+    padding: 1.1rem 0.4rem 1.1rem 0.4rem;
+    max-width: 98vw;
+    min-width: 0;
+    border-radius:10px;
+  }
+}
+@media (max-width: 360px) {
+  .modal-content {
+    padding: 0.2rem 0.1rem 0.8rem 0.1rem;
+    max-width: 100vw;
+    font-size: 0.98em;
+  }
+}
 .close{position:absolute;top:0.7rem;right:1.1rem;font-size:1.6rem;color:#e74c3c;cursor:pointer;font-weight:bold;}
 @media(max-width:700px){.container{padding:2px;margin:0;}}
 </style>
@@ -146,7 +170,6 @@ const defaultMenuData = [
       { name: "杏鮑菇炸棒", price: 41 }
     ]
   },
-  // 飲品（可根據你的最新價格表補齊）
   {
     category: "飲品",
     items: [
@@ -168,7 +191,6 @@ const defaultMenuData = [
   }
 ];
 
-// === 🟢 菜單載入 ===
 let menuData;
 try {
     menuData = JSON.parse(localStorage.getItem('dandan_menu'));
@@ -184,7 +206,6 @@ window.addEventListener('load', () => {
   adjustContainerPadding();
 });
 window.addEventListener('resize', adjustContainerPadding);
-// === 🟢 自動補底部空間 ===
 function adjustContainerPadding() {
   const cart = document.getElementById('cartSummary');
   const container = document.getElementById('menuSection');
@@ -275,9 +296,7 @@ function updateCartDisplay() {
 
 // === 🟢 結帳流程 ===
 function showCheckout() {
-    // 顯示 modal
     document.getElementById('checkoutModal').style.display = 'block';
-    // 訂單明細
     let summaryArr = Object.entries(cart).map(([key, qty]) => {
         const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
         const item = menuData[ci]?.items?.[iidx];
@@ -287,7 +306,6 @@ function showCheckout() {
         return str + ` ×${qty} = $${item.price*qty}`;
     });
     document.getElementById('orderSummary').innerHTML = summaryArr.map(s=>`<div>${s}</div>`).join('');
-    // 總價
     let total = Object.entries(cart).reduce((sum, [key, qty]) => {
         const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
         const item = menuData[ci]?.items?.[iidx];
@@ -301,7 +319,6 @@ function closeCheckout() {
 }
 document.getElementById('orderForm').addEventListener('submit', function(e){
     e.preventDefault();
-    // 檢查
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
     const note = document.getElementById('customerNote').value.trim();
@@ -310,7 +327,6 @@ document.getElementById('orderForm').addEventListener('submit', function(e){
         document.getElementById('orderError').style.display = "";
         return;
     }
-    // 組訂單資料
     let orderItems = Object.entries(cart).map(([key, qty]) => {
         const [ci,iidx] = key.split('-').map(x=>parseInt(x,10));
         const item = menuData[ci]?.items?.[iidx];
@@ -323,7 +339,6 @@ document.getElementById('orderForm').addEventListener('submit', function(e){
         }
     }).filter(Boolean);
     let total = orderItems.reduce((sum, i) => sum + i.price*i.quantity, 0);
-    // 寫進 localStorage
     let allOrders = [];
     try { allOrders = JSON.parse(localStorage.getItem('dandan_orders')||'[]'); } catch(e){}
     allOrders.push({
@@ -336,7 +351,6 @@ document.getElementById('orderForm').addEventListener('submit', function(e){
         total
     });
     localStorage.setItem('dandan_orders', JSON.stringify(allOrders));
-    // 清空購物車
     cart = {};
     updateCartDisplay();
     closeCheckout();
@@ -344,7 +358,6 @@ document.getElementById('orderForm').addEventListener('submit', function(e){
 });
 function closeSuccess(){
     document.getElementById('orderSuccessModal').style.display = 'none';
-    // 可重新整理或跳轉
 }
 </script>
 </body>
